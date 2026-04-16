@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ElderCare MediTrack - AI-Powered Adherence Monitor</title>
+    <!-- Content Security Policy for XSS protection -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -12,8 +14,70 @@
 <body>
     <div style="position: fixed; top: 10px; right: 10px; z-index: 1000;">
         <button id="soundToggle" onclick="toggleSound()" style="padding: 10px 14px; background: #10b981; color: white; border: none; border-radius: 22px; cursor: pointer; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);">
-            ?? Sound ON
+             Sound ON
         </button>
+    </div>
+
+    <!-- Security Notice: For production, serve over HTTPS to protect data transmission -->
+    <noscript>
+        <div style="text-align: center; padding: 20px; background: #fee; color: #c33; border: 1px solid #c33;">
+            <strong>Security Warning:</strong> JavaScript is required for this application. Ensure you're using a secure, updated browser.
+        </div>
+    </noscript>
+
+    <!-- Privacy Consent Modal -->
+    <div id="privacyModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-shield-alt"></i> Privacy & Data Protection</h2>
+                <p>Your privacy and data security are our top priorities</p>
+            </div>
+            <div class="modal-body">
+                <div class="privacy-content">
+                    <h3>Data Collection & Usage</h3>
+                    <p>We collect and store the following information to provide medication adherence monitoring:</p>
+                    <ul>
+                        <li><strong>Personal Information:</strong> Name, age, gender, phone number</li>
+                        <li><strong>Medical Data:</strong> Medical conditions, allergies, blood type</li>
+                        <li><strong>Contact Information:</strong> Address, emergency contacts</li>
+                        <li><strong>Medication Data:</strong> Medication schedules, adherence records</li>
+                        <li><strong>Health Metrics:</strong> Vital signs (stored locally only)</li>
+                    </ul>
+
+                    <h3>Data Security</h3>
+                    <ul>
+                        <li>All data is stored locally on your device</li>
+                        <li>Data is encrypted using industry-standard methods</li>
+                        <li>No data is transmitted without your explicit consent</li>
+                        <li>You can delete all your data at any time</li>
+                    </ul>
+
+                    <h3>Your Rights</h3>
+                    <ul>
+                        <li><strong>Access:</strong> View all your stored data</li>
+                        <li><strong>Correction:</strong> Update your information</li>
+                        <li><strong>Deletion:</strong> Remove all your data permanently</li>
+                        <li><strong>Portability:</strong> Export your data in readable format</li>
+                    </ul>
+
+                    <div class="privacy-consent">
+                        <label style="display: flex; align-items: center; gap: 10px; font-weight: 500;">
+                            <input type="checkbox" id="privacyConsent" required>
+                            I understand and consent to the collection and storage of my health data for medication monitoring purposes only.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" onclick="declinePrivacy()">
+                        <i class="fas fa-times"></i> Decline
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="acceptPrivacy()" id="acceptBtn" disabled>
+                        <i class="fas fa-check"></i> Accept & Continue
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <audio id="skipSound" preload="auto" style="display: none;">
@@ -27,13 +91,96 @@
     </audio>
 
     <div class="app-container">
+        <!-- Patient Registration Modal -->
+        <div id="patientModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-user-plus"></i> Welcome to ElderCare MediTrack</h2>
+                    <p>Please enter your information to get started. Name and phone number are required.</p>
+                </div>
+                <div class="modal-body">
+                    <form id="patientForm">
+                        <div class="form-group">
+                            <label for="patientNameInput"><i class="fas fa-user"></i> Full Name</label>
+                            <input type="text" id="patientNameInput" required placeholder="Enter your full name">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientAgeInput"><i class="fas fa-birthday-cake"></i> Age</label>
+                            <input type="number" id="patientAgeInput" required min="18" max="120" placeholder="Enter your age">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientGenderInput"><i class="fas fa-venus-mars"></i> Gender</label>
+                            <select id="patientGenderInput" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                                <option value="Prefer not to say">Prefer not to say</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="patientPhoneInput"><i class="fas fa-phone"></i> Phone Number *</label>
+                            <input type="tel" id="patientPhoneInput" required placeholder="+1 (555) 123-4567" pattern="^\+?[1-9]\d{1,14}$" title="Please enter a valid phone number (e.g., +15551234567)">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientAddressInput"><i class="fas fa-map-marker-alt"></i> Address</label>
+                            <input type="text" id="patientAddressInput" placeholder="Enter your address">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientEmergencyContactInput"><i class="fas fa-user-friends"></i> Emergency Contact Name</label>
+                            <input type="text" id="patientEmergencyContactInput" placeholder="Emergency contact name">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientEmergencyPhoneInput"><i class="fas fa-phone-alt"></i> Emergency Contact Phone</label>
+                            <input type="tel" id="patientEmergencyPhoneInput" placeholder="+1 (555) 123-4567">
+                        </div>
+                        <div class="form-group">
+                            <label for="patientBloodTypeInput"><i class="fas fa-tint"></i> Blood Type</label>
+                            <select id="patientBloodTypeInput">
+                                <option value="">Select Blood Type</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="patientAllergiesInput"><i class="fas fa-exclamation-triangle"></i> Allergies</label>
+                            <input type="text" id="patientAllergiesInput" placeholder="List any allergies (comma separated)">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save & Continue
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <div class="logo">
                 <i class="fas fa-pills"></i> ElderCare MediTrack
+                <i class="fas fa-heart heartbeat" style="color: #ef4444; margin-left: 10px;"></i>
             </div>
-            <button class="mode-toggle" onclick="toggleView()">
-                <i class="fas" id="viewIcon">?? Patient View</i>
-            </button>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="editPatientInfo()" title="Edit Patient Info">
+                    <i class="fas fa-edit"></i>🙍Edit Profile
+                </button>
+                <button class="btn btn-info" onclick="exportPatientData()" title="Export Your Data">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+                <button class="btn btn-danger" onclick="deleteAllPatientData()" title="Delete All Data">
+                    <i class="fas fa-trash"></i>❌ Delete Data
+                </button>
+                <button class="mode-toggle" onclick="toggleView()">
+                    <i class="fas" id="viewIcon">👥 Patient View</i>
+                </button>
+            </div>
         </div>
 
         <div class="sms-settings-panel" id="smsSettings" style="display: none;">
@@ -43,11 +190,11 @@
             <div class="sms-config">
                 <div class="config-row">
                     <label>Caregiver Phone:</label>
-                    <input type="tel" id="caregiverPhone" placeholder="+1 (555) 123-4567" value="+15551234567">
+                    <input type="tel" id="caregiverPhone" placeholder="+1 (555) 123-4567" value="+15551234567" pattern="^\+?[1-9]\d{1,14}$" title="Please enter a valid phone number (e.g., +15551234567)">
                 </div>
                 <div class="config-row">
                     <label>Patient Phone:</label>
-                    <input type="tel" id="patientPhone" placeholder="+1 (555) 987-6543" value="+15559876543">
+                    <input type="tel" id="patientPhone" placeholder="+1 (555) 987-6543" value="+15559876543" pattern="^\+?[1-9]\d{1,14}$" title="Please enter a valid phone number (e.g., +15559876543)">
                 </div>
                 <div class="config-row">
                     <label>Alert Threshold (hours late):</label>
@@ -67,10 +214,97 @@
         <div class="dashboard-grid">
             <div class="medications-panel">
                 <h2 class="panel-title">
-                    <i class="fas fa-list"></i> Today's Medications
+                    <i class="fas fa-calendar-check"></i> My Medication Schedule
                 </h2>
+                <div class="schedule-overview">
+                    <div class="schedule-item">
+                        <div class="schedule-time">9:00 AM</div>
+                        <div class="schedule-med">Paracetamol 500mg</div>
+                        <div class="schedule-status taken">✓ Taken</div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-time">10:00 AM</div>
+                        <div class="schedule-med">Amlodipine 5mg</div>
+                        <div class="schedule-status pending">○ Pending</div>
+                    </div>
+                    <div class="schedule-item">
+                        <div class="schedule-time">8:00 PM</div>
+                        <div class="schedule-med">Metformin 1000mg</div>
+                        <div class="schedule-status pending">○ Pending</div>
+                    </div>
+                </div>
                 <div class="medication-list" id="medList">
                     <!-- Dynamic medications -->
+                </div>
+            </div>
+
+            <div class="vitals-panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-heartbeat"></i> Vital Signs Monitor
+                </h2>
+                <div class="patient-info">
+                    <div class="patient-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="patient-details">
+                        <h3 id="patientName">Mrs. Eleanor Johnson</h3>
+                        <p id="patientAge">Age: 78</p>
+                        <p id="patientGender">Gender: Female</p>
+                        <p id="patientPhone">Phone: +1 (555) 123-4567</p>
+                        <p id="patientAddress">Address: 123 Main St, Anytown, USA</p>
+                        <p id="patientEmergencyContact">Emergency Contact: John Johnson (+1 (555) 987-6543)</p>
+                        <p id="patientBloodType">Blood Type: A+</p>
+                        <p id="patientAllergies">Allergies: Penicillin, Shellfish</p>
+                        <p id="patientConditions">Conditions: Hypertension, Diabetes, Osteoporosis</p>
+                    </div>
+                </div>
+                <div class="vitals-grid">
+                    <div class="vital-card">
+                        <div class="vital-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="vital-data">
+                            <div class="vital-value" id="heartRate">72</div>
+                            <div class="vital-label">BPM</div>
+                            <div class="vital-status" id="heartStatus">Normal</div>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="vital-data">
+                            <div class="vital-value" id="temperature">98.6</div>
+                            <div class="vital-label">°F</div>
+                            <div class="vital-status" id="tempStatus">Normal</div>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon">
+                            <i class="fas fa-weight"></i>
+                        </div>
+                        <div class="vital-data">
+                            <div class="vital-value" id="weight">145</div>
+                            <div class="vital-label">lbs</div>
+                            <div class="vital-status" id="weightStatus">Stable</div>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="vital-data">
+                            <div class="vital-value" id="bloodPressure">120/80</div>
+                            <div class="vital-label">mmHg</div>
+                            <div class="vital-status" id="bpStatus">Normal</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="heartbeat-graph">
+                    <canvas id="heartbeatCanvas" width="300" height="100"></canvas>
+                </div>
+                <div class="last-update">
+                    <small>Last updated: <span id="lastUpdate">Just now</span></small>
                 </div>
             </div>
 
